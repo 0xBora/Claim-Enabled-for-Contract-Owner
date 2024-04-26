@@ -47,6 +47,10 @@ validator(p: PolicyId) {
 //  }
 //)
 
+// I could check that the output of the outgoing transaction is sent to the initial 
+// depositor as long as this condition is fulfilled it does not matter who signed the transaction
+// output.address.paymentCredential =datum.owner
+
 test validate_withdrawal_success_by_owner() {
   let owner_key_hash =
     #"0000000000000000000000000000000000000000000000000000000000000000"
