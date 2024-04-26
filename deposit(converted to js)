@@ -1,0 +1,84 @@
+// Import necessary modules from lucid-cardano for blockchain interaction,
+// cbor for data encoding/decoding, fs for file operations, 
+// and dotenv for environment variable management.
+import { Blockfrost, Constr, Data, Lucid, SpendingValidator, TxHash, fromHex, toHex, utf8ToHex } from "lucid-cardano";
+import cbor from "cbor";
+import fs from 'fs/promises';
+import dotenv from 'dotenv';
+
+// Load environment variables from a .env file
+dotenv.config();
+
+// The main async function encapsulating the script's logic
+async function main() {
+  // Initialize the Blockfrost API client with credentials
+  const blockfrostProjectId = process.env.BLOCKFROST_PROJECT_ID;
+  const lucid = await Lucid.new(
+    new Blockfrost(
+      "https://cardano-preview.blockfrost.io/api/v0",
+      blockfrostProjectId
+    ),
+    "Preview"
+  );
+
+  // Load the private key from a file and select the wallet
+  const privateKey = await fs.readFile("./me.sk", { encoding: 'utf8' });
+  lucid.selectWalletFromPrivateKey(privateKey);
+
+  // Read validator information to use in transactions
+  const validator = await readValidator();
+
+  // Get the public key hash from the wallet address details
+  const publicKeyHash = lucid.utils.getAddressDetails(  
+      await lucid.wallet.address()
+  ).paymentCredential?.hash;
+  
+  // Create a datum object required by the smart contract
+  const datum = Data.to(new Constr(0, [publicKeyHash]));
+
+  // Lock funds into the contract by calling the lock function
+  const txHash = await lock(1000000n, { into: validator, owner: datum });
+
+  // Wait for the transaction to be confirmed
+  await lucid.awaitTx(txHash);
+
+  // Log the result of the locking operation
+  console.log(`1 tADA locked into the contract at:
+      Tx ID: ${txHash}
+      Datum: ${datum}
+  `);
+}
+
+// Reads validator configuration from a JSON file
+async function readValidator(): Promise<SpendingValidator> {
+  const validatorData = await fs.readFile("plutus.json", { encoding: 'utf8' });
+  const validator = JSON.parse(validatorData).validators[0];
+  return {
+    type: "PlutusV2",
+    script: toHex(cbor.encode(fromHex(validator.compiledCode))),
+  };
+}
+
+// Function to lock funds into a smart contract
+async function lock(
+  lovelace: bigint,
+  { into, owner }: { into: SpendingValidator; owner: string }
+): Promise<TxHash> {
+  // Convert the validator into a contract address
+  const contractAddress = lucid.utils.validatorToAddress(into);
+
+  // Prepare and submit the transaction
+  const tx = await lucid
+    .newTx()
+    .payToContract(contractAddress, { inline: owner }, { lovelace })
+    .complete();
+
+  // Sign and complete the transaction, returning the transaction hash
+  const signedTx = await tx.sign().complete();
+  return signedTx.submit();
+}
+
+// Execute the main function and handle errors
+main().catch(console.error);
+
+// PowerShell -Command "Set-ExecutionPolicy Bypass -Scope Process; tsc src/deposit.ts", after creating src file and tsconfig

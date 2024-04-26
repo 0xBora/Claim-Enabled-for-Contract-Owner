@@ -1,0 +1,83 @@
+// Importing necessary modules from lucid-cardano, cbor for encoding/decoding, 
+// fs for file operations, and dotenv for environment variables management.
+import { Blockfrost, Constr, Data, Lucid, SpendingValidator, TxHash, fromHex, toHex, utf8ToHex } from "lucid-cardano";
+import cbor from "cbor";
+import fs from 'fs/promises';
+import dotenv from 'dotenv';
+
+// Load environment variables from a .env file at the project root
+dotenv.config();
+
+// The main async function to encapsulate script logic
+async function main() {
+  // Initialize the Blockfrost API with the project ID from environment variables
+  const blockfrostProjectId = process.env.BLOCKFROST_PROJECT_ID;
+  const lucid = await Lucid.new(
+    new Blockfrost(
+      "https://cardano-preview.blockfrost.io/api/v0",
+      blockfrostProjectId
+    ),
+    "Preview"
+  );
+
+  // Read the private key from file and select the wallet for transactions
+  // If generateWallet.js saves files in the tools directory
+  const privateKey = await fs.readFile("./tools/me.sk", { encoding: 'utf8' });
+
+  lucid.selectWalletFromPrivateKey(privateKey);
+
+  // Retrieve validator information for the transaction
+  const validator = await readValidator();
+  // Get the transaction hash argument from the command line
+  const [txHashArg] = process.argv.slice(2);
+  // Construct the UTXO reference for the transaction
+  const utxo = { txHash: txHashArg, outputIndex: 0 };
+  // Define the redeemer script, since Redeemer doesn't carry data, using an empty array for construction
+  const redeemer = {};
+  
+  // Call the unlock function to perform the withdrawal and get the transaction hash
+  const txHash = await unlock(utxo, {
+    from: validator,
+    using: redeemer,
+  });
+
+  // Await for the transaction to be confirmed
+  await lucid.awaitTx(txHash);
+  // Log the result of the transaction
+  console.log(`1 tADA unlocked from the contract
+      Tx ID:    ${txHash}
+      Redeemer: ${redeemer}
+  `);
+}
+
+// Reads the validator configuration from a JSON file and returns a validator object
+async function readValidator(): Promise<SpendingValidator> {
+  const validatorData = await fs.readFile("plutus.json", { encoding: 'utf8' });
+  const validator = JSON.parse(validatorData).validators[0];
+  return {
+    type: "PlutusV2",
+    script: toHex(cbor.encode(fromHex(validator.compiledCode))),
+  };
+}
+
+// Constructs and submits a transaction to unlock funds, returning the transaction hash
+async function unlock(
+  ref,
+  { from, using }: { from: SpendingValidator; using: string }
+): Promise<TxHash> {
+  // Fetch UTXO details and prepare the transaction
+  const [utxo] = await lucid.utxosByOutRef([ref]);
+  const tx = await lucid
+    .newTx()
+    .collectFrom([utxo], using)
+    .addSigner(await lucid.wallet.address())
+    .attachSpendingValidator(from)
+    .complete();
+
+  // Sign and submit the transaction, then return the transaction hash
+  const signedTx = await tx.sign().complete();
+  return signedTx.submit();
+}
+
+// Execute the main function and catch any errors
+main().catch(console.error);

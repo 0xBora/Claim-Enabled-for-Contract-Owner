@@ -1,0 +1,64 @@
+{
+  "preamble": {
+    "title": "0xquantive/attempt_1",
+    "description": "Aiken contracts for project '0xquantive/attempt_1'",
+    "version": "0.0.0",
+    "plutusVersion": "v2",
+    "compiler": {
+      "name": "Aiken",
+      "version": "v1.0.26-alpha+unknown"
+    },
+    "license": "Apache-2.0"
+  },
+  "validators": [
+    {
+      "title": "logic.validate_withdrawal",
+      "datum": {
+        "title": "datum",
+        "schema": {
+          "$ref": "#/definitions/logic~1Datum"
+        }
+      },
+      "redeemer": {
+        "title": "_redeemer",
+        "schema": {
+          "$ref": "#/definitions/logic~1Redeemer"
+        }
+      },
+      "compiledCode": "58b901000032323232323223223225333006323322323300100100322533300e00114a0264a66601866e3cdd718080010020a511330030030013010001375860166018601860186018601860186018601860126ea8c004c024dd50011bae30013009375400c4601600229309b2b299980219b8748000c014dd50008a99980398031baa001149858594ccc008cdc3a400060066ea80044c8c94ccc01cc02400852616375c600e00260086ea8004595cd2ab9d5573caae7d5d0aba21",
+      "hash": "4698816c823cfc31754dc0f60b84dab504eb559779f6f355da1d0b35"
+    }
+  ],
+  "definitions": {
+    "ByteArray": {
+      "dataType": "bytes"
+    },
+    "logic/Datum": {
+      "title": "Datum",
+      "anyOf": [
+        {
+          "title": "Datum",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "owner",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "logic/Redeemer": {
+      "title": "Redeemer",
+      "anyOf": [
+        {
+          "title": "Redeemer",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": []
+        }
+      ]
+    }
+  }
+}
