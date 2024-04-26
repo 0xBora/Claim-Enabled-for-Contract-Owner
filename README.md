@@ -1,4 +1,6 @@
 # Claim-Enabled-for-Contract-Owner
+
+## A Nodejs repo issue that I want to take a look at: https://github.com/nodejs/node/issues/47747
 ## Cardano Smart Contract with Secure Withdrawal via Aiken/Lucid
 This Cardano smart contract allows for the secure deposit of ADA, ensuring that only the contract's owner has withdrawal privileges. The off-chain codebase is developed in TypeScript, compiled to JavaScript for Node.js execution. Contract validation is articulated through Aiken, enforcing strict ownership checks for withdrawals
 
