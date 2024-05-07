@@ -9,3 +9,5 @@ const address = await lucid
   .selectWalletFromPrivateKey(privateKey)
   .wallet.address();
 await Deno.writeTextFile("me.addr", address);
+
+//  // deno run --allow-net --allow-read --allow-env ... 
